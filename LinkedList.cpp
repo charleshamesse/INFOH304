@@ -14,6 +14,7 @@ long int LinkedList::getCount() {
   return count;
 }
 
+
 Node* LinkedList::getNext() {
   // There has to be at least one node
   if(count > 0) {
@@ -26,6 +27,26 @@ Node* LinkedList::getNext() {
     else {
       current = head;
       idx++;
+    }
+    return current;
+  }
+  else {
+    return NULL;
+  }
+}
+
+Node* LinkedList::getPrev() {
+  // There has to be at least one node
+  if(count > 0) {
+    // If getNext(); has alreadby been called
+    if(idx > 0) {
+      current = current->prev;
+      idx--;
+    }
+    // Else, return the first element
+    else {
+      current = head;
+      //idx--;
     }
     return current;
   }

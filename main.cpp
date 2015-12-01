@@ -8,7 +8,7 @@ using namespace std;
 
 /*
  * cmpProteins: returns true if p1 is equal to p2, false if not.
- */
+
 bool cmpProteins(LinkedList p1, LinkedList p2) {
   Node *current_p1;
   Node *current_p2;
@@ -26,6 +26,47 @@ bool cmpProteins(LinkedList p1, LinkedList p2) {
   else
   return false;
 }
+*/
+int cmpProteins(vector<int> p1, vector<int> p2, int indel, map<int, map<int, int> > *maptrix){
+    // prt p1
+    // myPrt p2
+    int score = 0;
+    vector<vector<int> > vecScore;
+
+    for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix
+        vector<int> row;
+        for(int j = 0; j<= p1.size(); j++){
+            row.push_back(0);
+        }
+        vecScore.push_back(row);
+    }
+
+
+    for (int i = 1; i<= p2.size(); i++){
+            vector<int> row;
+            // current_p2 = p2[i-1]
+        for(int j = 1; j< p1.size(); j++){
+            // current_p1 = p1[j-1]
+            int possUP = vecScore[i][j-1] + indel;
+            int possLEFT = vecScore[i-1][j] + indel;
+            int possUL = vecScore[i-1][j-1] + (*maptrix)[p2[i-1]][p1[j-1]];
+            int maxUL = max(possUP, possLEFT);
+            int maxZUL = max(0, possUL);
+            vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score form the possibilities
+
+            if((i==p2.size() || j == p1.size()) && (vecScore[i][j] > score)){ //register the score
+				          score = vecScore[i][j];
+				          //maxScoreX = i; maxScoreY = j;
+			}
+
+            //cout << ". Score: " << vecScore[i][j] << endl;
+        }
+    }
+
+    return score;
+  }
+
+
 
 /* For now, the main function does the following actions:
  * 1. Read the encoding table
@@ -74,6 +115,7 @@ int main(int argc, char* argv[]) {
 
   // Read the protein
   LinkedList testProtein;
+  vector<int> vecTestProtein;
   ifstream current_protein ("assets/proteins/P00533.fasta");
   if (current_protein.is_open())
   {
@@ -90,6 +132,7 @@ int main(int argc, char* argv[]) {
         // We add each char to the list, except line breaks.
         if(c != '\n') {
           testProtein.append(encoding_table[c]);
+          vecTestProtein.push_back(encoding_table[c]);
         }
       }
     }
@@ -97,12 +140,11 @@ int main(int argc, char* argv[]) {
   current_protein.close();
   // Print the protein
   cout << "Protein ("<< testProtein.count << " AA):\n";
-  testProtein.printFromHead();
 
   // Init the BLOSUM matrix
   vector< vector<int> > matrix;
-  map<char, map<char, int> > maptrix;
-  char keys[24];
+  map<int, map<int, int> > maptrix;
+  int keys[24];
 
 
   ifstream current_matrix("assets/blosum/BLOSUM62.txt");
@@ -114,7 +156,7 @@ int main(int argc, char* argv[]) {
     while(getline(current_matrix,line))
     {
       vector<int> row;
-      map<char, int> maprow;
+      map<int, int> maprow;
       // If the line is a comment, we do nothing.
       if(line.at(0) != '#') {
         stringstream linestream(line);
@@ -131,12 +173,16 @@ int main(int argc, char* argv[]) {
             stringstream valuestream(val);
             valuestream >> x;
 
+
             // If it did not fail (we're reading a char), we're reading the keys. Thus we store them.
             if (!valuestream.fail()) {
-              maptrix[val.at(0)] = maprow;
-              keys[j] = val.at(0);
-              cout << "Inserting key" << j << ": " << keys[j] << endl;
-              cout << "Inserted:" << val.at(0) << endl;
+              int key = encoding_table[val.at(0)];
+              maptrix[key] = maprow;
+              keys[j] = key;
+              //maptrix[val.at(0)] = maprow;
+              //keys[j] = val.at(0);
+              //cout << "Inserting key" << j << ": " << keys[j] << endl;
+              //cout << "Inserted:" << key << endl;
               j++; // char counter
             }
           }
@@ -149,7 +195,7 @@ int main(int argc, char* argv[]) {
 
           if (!valuestream.fail()) {
             row.push_back(stoi(val));
-            cout << "Inserted (" << keys[k-1] << ", " << keys[j] << "):" << val << endl;
+            //cout << "Inserted (" << keys[k-1] << ", " << keys[j] << "):" << val << endl;
             maptrix[keys[k-1]][keys[j]] = stoi(val);
             // End of int
             j++;
@@ -163,7 +209,7 @@ int main(int argc, char* argv[]) {
   }
 
   // Little test:
-  cout << "Map A:G" << maptrix['P']['P'] << endl;
+  //cout << "Map A:G" << maptrix['P']['P'] << endl;
   current_matrix.close();
 
 
@@ -190,8 +236,9 @@ if (myfile.is_open())
 {
   // Let us create a new linked list
   LinkedList dbProtein;
+  vector<int> vecDbProtein;
   // For each byte in the file
-  while (myfile.read((&c), 1))
+  while (myfile.read((&c), 1) && i < 50)
   {
     // If the current byte is the empty byte
     if(c == e) {
@@ -202,23 +249,20 @@ if (myfile.is_open())
         // TO-DO {
         map<char, map<char, int> > score;
 
-        if(cmpProteins(dbProtein, testProtein)) {
-          cout << "Match: " << i << endl;
-          break;
-        }
-        else {
-          //cout << "Mismatch" << endl;
-        }
-        //}
+        int current_score = cmpProteins(vecDbProtein, vecTestProtein, -1, &maptrix);
+        cout << "Score " << i << ": " << current_score << endl;
+
 
         // We delete the list containing the protein and start over.
         dbProtein.deleteList();
+        vecDbProtein.clear();
       }
       i++;
     }
     // If the byte is not empty, we append it to the current protein.
     else {
       dbProtein.append((uint8_t)c);
+      vecDbProtein.push_back((uint8_t)c);
     }
   }
 

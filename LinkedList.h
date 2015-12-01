@@ -10,16 +10,16 @@ private:
   Node *tail; // this is the private member variable. It is just a pointer to the first Node
 public:
   // constructor
-  long int count; // Number of node
+  long int count; // Number of nodes
   long int idx; // Current position in LinkedList
   Node *current;
 
   LinkedList();
 
   long int getCount();
-  
-  Node* getNext();
 
+  Node* getNext();
+  Node* getPrev(); // To be corrected
   Node* getHead();
 
   // This prepends a new value at the beginning of the list
