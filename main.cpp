@@ -3,77 +3,88 @@
 #include <sstream>
 #include <map>
 #include <vector>
+#include <thread>
+#include <pthread.h>
 #include "LinkedList.h"
+#include "ThreadPool.h"
 using namespace std;
 
 /*
- * cmpProteins: returns true if p1 is equal to p2, false if not.
+* cmpProteins: returns true if p1 is equal to p2, false if not.
+* old version using LinkedLists
 
 bool cmpProteins(LinkedList p1, LinkedList p2) {
-  Node *current_p1;
-  Node *current_p2;
-  current_p1 = p1.getHead();
-  current_p2 = p2.getHead();
-  while(current_p1 != NULL && current_p2 != NULL) {
-    if(current_p1->x != current_p2->x) {
-      return false;
-    }
-    current_p1 = p1.getNext();
-    current_p2 = p2.getNext();
-  }
-  if(current_p1 == NULL && current_p2 == NULL)
-  return true;
-  else
-  return false;
+Node *current_p1;
+Node *current_p2;
+current_p1 = p1.getHead();
+current_p2 = p2.getHead();
+while(current_p1 != NULL && current_p2 != NULL) {
+if(current_p1->x != current_p2->x) {
+return false;
+}
+current_p1 = p1.getNext();
+current_p2 = p2.getNext();
+}
+if(current_p1 == NULL && current_p2 == NULL)
+return true;
+else
+return false;
 }
 */
+/*
+void* execThread(int i) {
+cout << "Thread " << i << "<< says Hi!" << endl;
+}
+*/
+
+// cmpProteins: new version using vectors
 int cmpProteins(vector<int> p1, vector<int> p2, int indel, map<int, map<int, int> > *maptrix){
-    // prt p1
-    // myPrt p2
-    int score = 0;
-    vector<vector<int> > vecScore;
+  // prt p1
+  // myPrt p2
+  int score = 0;
+  vector<vector<int> > vecScore;
 
-    for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix
-        vector<int> row;
-        for(int j = 0; j<= p1.size(); j++){
-            row.push_back(0);
-        }
-        vecScore.push_back(row);
+  for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix
+    vector<int> row;
+    for(int j = 0; j<= p1.size(); j++){
+      row.push_back(0);
     }
-
-
-    for (int i = 1; i<= p2.size(); i++){
-            vector<int> row;
-            // current_p2 = p2[i-1]
-        for(int j = 1; j< p1.size(); j++){
-            // current_p1 = p1[j-1]
-            int possUP = vecScore[i][j-1] + indel;
-            int possLEFT = vecScore[i-1][j] + indel;
-            int possUL = vecScore[i-1][j-1] + (*maptrix)[p2[i-1]][p1[j-1]];
-            int maxUL = max(possUP, possLEFT);
-            int maxZUL = max(0, possUL);
-            vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score form the possibilities
-
-            if((i==p2.size() || j == p1.size()) && (vecScore[i][j] > score)){ //register the score
-				          score = vecScore[i][j];
-				          //maxScoreX = i; maxScoreY = j;
-			}
-
-            //cout << ". Score: " << vecScore[i][j] << endl;
-        }
-    }
-
-    return score;
+    vecScore.push_back(row);
   }
+
+
+  for (int i = 1; i<= p2.size(); i++){
+    vector<int> row;
+    // current_p2 = p2[i-1]
+    for(int j = 1; j< p1.size(); j++){
+      // current_p1 = p1[j-1]
+      int possUP = vecScore[i][j-1] + indel;
+      int possLEFT = vecScore[i-1][j] + indel;
+      int possUL = vecScore[i-1][j-1] + (*maptrix)[p2[i-1]][p1[j-1]];
+      int maxUL = max(possUP, possLEFT);
+      int maxZUL = max(0, possUL);
+      vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score form the possibilities
+
+      if((i==p2.size() || j == p1.size()) && (vecScore[i][j] > score)){ //register the score
+        score = vecScore[i][j];
+        //maxScoreX = i; maxScoreY = j;
+      }
+
+      //cout << ". Score: " << vecScore[i][j] << endl;
+    }
+  }
+
+  return score;
+}
 
 
 
 /* For now, the main function does the following actions:
- * 1. Read the encoding table
- * 2. Read the input protein
- * 3. Read the BLOSUM matrix
- * 4. Read the database and test for equality
- */
+* 1. Read the encoding table
+* 2. Read the input protein
+* 3. Read the BLOSUM matrix
+* 4. Read the database and test for equality
+*/
 int main(int argc, char* argv[]) {
   int i = 0;
   int j = 0;
@@ -82,7 +93,6 @@ int main(int argc, char* argv[]) {
   char e = '\0';
   char c;
   unsigned char *b;
-
 
   // Init the map
   map<char, int> encoding_table;
@@ -224,7 +234,38 @@ cout << endl;
 */
 
 
+/*
 
+Thread example
+
+*/
+
+
+/*
+int Num_Threads =  thread::hardware_concurrency();
+cout << "Number of threads: " << Num_Threads << endl;
+pthread_t threads[5];
+for(size_t i = 0; i < sizeof threads / sizeof *threads; ++i) {
+pthread_create(threads + i, NULL,execThread, i);
+}
+
+// Wait for the threads to terminate.
+for(size_t i = 0; i < sizeof threads / sizeof *threads; ++i) {
+pthread_join(threads[i], NULL);
+}
+*/
+
+/*
+*
+* Init the thread pool
+*
+*/
+
+int nThreads =  std::thread::hardware_concurrency();
+std::cout << "Number of threads: " << nThreads << std::endl;
+ThreadPool pool(nThreads);
+std::vector< std::future<int> > results;
+int current_score;
 
 
 
@@ -246,12 +287,20 @@ if (myfile.is_open())
       if(i > 0) {
         // We could print the protein using: dbProtein.printFromHead();
         // Compare proteins
-        // TO-DO {
+        // TO-DO
         map<char, map<char, int> > score;
 
+        // Give the job to the thread pool
+        results.emplace_back(
+          pool.enqueue([current_score, vecDbProtein, vecTestProtein, &maptrix] {
+            return cmpProteins(vecDbProtein, vecTestProtein, -1, &maptrix);
+          })
+        );
+
+        /* Without multi-threading:
         int current_score = cmpProteins(vecDbProtein, vecTestProtein, -1, &maptrix);
         cout << "Score " << i << ": " << current_score << endl;
-
+        */
 
         // We delete the list containing the protein and start over.
         dbProtein.deleteList();
@@ -267,9 +316,18 @@ if (myfile.is_open())
   }
 
   myfile.close();
+  // Displaying scores
+  int nScore = 1;
+  for(auto && result: results) {
+    std::cout << "Score " << nScore << ": " << result.get() << endl;
+    nScore++;
+  }
+  std::cout << std::endl;
 }
 
 else cout << "\nUnable to open file\n";
+
+
 
 return EXIT_SUCCESS;
 }

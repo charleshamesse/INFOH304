@@ -1,5 +1,5 @@
 all: LinkedList.o main.cpp
-	g++ LinkedList.o main.cpp -o main
+	g++ -std=c++11 LinkedList.o main.cpp -o main
 
 LinkedList.o: LinkedList.cpp
 	g++ -c LinkedList.cpp
