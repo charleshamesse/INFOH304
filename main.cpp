@@ -9,75 +9,54 @@
 #include "ThreadPool.h"
 using namespace std;
 
-/*
-* cmpProteins: returns true if p1 is equal to p2, false if not.
-* old version using LinkedLists
-
-bool cmpProteins(LinkedList p1, LinkedList p2) {
-Node *current_p1;
-Node *current_p2;
-current_p1 = p1.getHead();
-current_p2 = p2.getHead();
-while(current_p1 != NULL && current_p2 != NULL) {
-if(current_p1->x != current_p2->x) {
-return false;
-}
-current_p1 = p1.getNext();
-current_p2 = p2.getNext();
-}
-if(current_p1 == NULL && current_p2 == NULL)
-return true;
-else
-return false;
-}
-*/
-/*
-void* execThread(int i) {
-cout << "Thread " << i << "<< says Hi!" << endl;
-}
-*/
-
-// cmpProteins: new version using vectors
-int cmpProteins(vector<int> p1, vector<int> p2, int indel, map<int, map<int, int> > *maptrix){
-  // prt p1
-  // myPrt p2
+// cmpProteins: version using vectors 
+int cmpProteins(vector<int> p1, vector<int> p2, int indel, int openIndel, map<int, map<int, int> > *maptrix){
+  int nbInd = 0;
   int score = 0;
   vector<vector<int> > vecScore;
+  vector<vector<int> > vecIndel;
 
-  for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix
+  for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix and an empty indel matrix
     vector<int> row;
+    vector<int> row2;
     for(int j = 0; j<= p1.size(); j++){
       row.push_back(0);
+      row2.push_back(0);
     }
     vecScore.push_back(row);
+    vecIndel.push_back(row2);
   }
-
-
   for (int i = 1; i<= p2.size(); i++){
     vector<int> row;
-    // current_p2 = p2[i-1]
     for(int j = 1; j< p1.size(); j++){
-      // current_p1 = p1[j-1]
-      int possUP = vecScore[i][j-1] + indel;
-      int possLEFT = vecScore[i-1][j] + indel;
+	  int possUP = 0; int possLEFT = 0;
+	  if(vecIndel[i][j-1] == 1){
+		possUP = vecScore[i][j-1] + indel;
+	  }else{
+		possUP = vecScore[i][j-1] + indel + openIndel;
+	  }
+	  if(vecIndel[i-1][j] == 2){
+		possLEFT = vecScore[i-1][j] + indel;
+	  }else{
+		possLEFT = vecScore[i-1][j] + indel + openIndel;
+	  }
       int possUL = vecScore[i-1][j-1] + (*maptrix)[p2[i-1]][p1[j-1]];
       int maxUL = max(possUP, possLEFT);
       int maxZUL = max(0, possUL);
-      vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score form the possibilities
-
+      vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score from the possibilities
+      if (max(maxUL, maxZUL) == possUP && max(maxUL, maxZUL) != 0){
+		  vecIndel[i][j] = 1;
+	  }
+	  else if(max(maxUL, maxZUL) == possLEFT && max(maxUL, maxZUL) != 0){
+		  vecIndel[i][j] = 2;
+	  }
       if((i==p2.size() || j == p1.size()) && (vecScore[i][j] > score)){ //register the score
         score = vecScore[i][j];
-        //maxScoreX = i; maxScoreY = j;
       }
-
-      //cout << ". Score: " << vecScore[i][j] << endl;
     }
-  }
-
+   }
   return score;
 }
-
-
 
 /* For now, the main function does the following actions:
 * 1. Read the encoding table
@@ -94,8 +73,7 @@ int main(int argc, char* argv[]) {
   char c;
   unsigned char *b;
 
-  // Init the map
-  map<char, int> encoding_table;
+  map<char, int> encoding_table;  // Init the map
   ifstream encoding ("assets/encoding.txt");
   // For each line in the file
   while(getline(encoding,line))
@@ -121,7 +99,6 @@ int main(int argc, char* argv[]) {
     // Here we finish the line with the pair created.
   }
   encoding.close();
-
 
   // Read the protein
   LinkedList testProtein;
@@ -183,16 +160,11 @@ int main(int argc, char* argv[]) {
             stringstream valuestream(val);
             valuestream >> x;
 
-
             // If it did not fail (we're reading a char), we're reading the keys. Thus we store them.
             if (!valuestream.fail()) {
               int key = encoding_table[val.at(0)];
               maptrix[key] = maprow;
               keys[j] = key;
-              //maptrix[val.at(0)] = maprow;
-              //keys[j] = val.at(0);
-              //cout << "Inserting key" << j << ": " << keys[j] << endl;
-              //cout << "Inserted:" << key << endl;
               j++; // char counter
             }
           }
@@ -217,58 +189,17 @@ int main(int argc, char* argv[]) {
       matrix.push_back(row);
     }
   }
-
-  // Little test:
-  //cout << "Map A:G" << maptrix['P']['P'] << endl;
   current_matrix.close();
-
-
-  // Print the matrix
-  /*
-  for (vector< vector<int> >::const_iterator j = matrix.begin(); j != matrix.end(); ++j) {
-  for (vector<int>::const_iterator i = (*j).begin(); i != (*j).end(); ++i) {
-  cout << *i << ' ';
-}
-cout << endl;
-}
-*/
-
-
-/*
-
-Thread example
-
-*/
-
-
-/*
-int Num_Threads =  thread::hardware_concurrency();
-cout << "Number of threads: " << Num_Threads << endl;
-pthread_t threads[5];
-for(size_t i = 0; i < sizeof threads / sizeof *threads; ++i) {
-pthread_create(threads + i, NULL,execThread, i);
-}
-
-// Wait for the threads to terminate.
-for(size_t i = 0; i < sizeof threads / sizeof *threads; ++i) {
-pthread_join(threads[i], NULL);
-}
-*/
-
 /*
 *
 * Init the thread pool
 *
 */
-
 int nThreads =  std::thread::hardware_concurrency();
 std::cout << "Number of threads: " << nThreads << std::endl;
 ThreadPool pool(nThreads);
 std::vector< std::future<int> > results;
 int current_score;
-
-
-
 
 // Read the database
 cout << "\n\nReading database: \n" << endl;
@@ -279,29 +210,21 @@ if (myfile.is_open())
   LinkedList dbProtein;
   vector<int> vecDbProtein;
   // For each byte in the file
-  while (myfile.read((&c), 1) && i < 50)
+  while (myfile.read((&c), 1))// && i < 5)
   {
     // If the current byte is the empty byte
     if(c == e) {
       // First byte of the file is an empty byte, so we do not add the protein to the list as it is empty.
       if(i > 0) {
-        // We could print the protein using: dbProtein.printFromHead();
         // Compare proteins
-        // TO-DO
         map<char, map<char, int> > score;
 
         // Give the job to the thread pool
         results.emplace_back(
           pool.enqueue([current_score, vecDbProtein, vecTestProtein, &maptrix] {
-            return cmpProteins(vecDbProtein, vecTestProtein, -1, &maptrix);
+            return cmpProteins(vecDbProtein, vecTestProtein, -1, -6, &maptrix);
           })
         );
-
-        /* Without multi-threading:
-        int current_score = cmpProteins(vecDbProtein, vecTestProtein, -1, &maptrix);
-        cout << "Score " << i << ": " << current_score << endl;
-        */
-
         // We delete the list containing the protein and start over.
         dbProtein.deleteList();
         vecDbProtein.clear();
@@ -314,20 +237,19 @@ if (myfile.is_open())
       vecDbProtein.push_back((uint8_t)c);
     }
   }
-
   myfile.close();
   // Displaying scores
-  int nScore = 1;
+  int nScore = 0;
   for(auto && result: results) {
-    std::cout << "Score " << nScore << ": " << result.get() << endl;
+	  if(nScore%1000 == 0){
+		std::cout << "Score " << nScore << ": " << result.get() << endl;
+	  }
     nScore++;
   }
   std::cout << std::endl;
 }
 
 else cout << "\nUnable to open file\n";
-
-
 
 return EXIT_SUCCESS;
 }
