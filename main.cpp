@@ -18,7 +18,7 @@ int cmpProteins(vector<int> p1, vector<int> p2, int indel, int openIndel, map<in
 
   for (int i = 0; i<= p2.size(); i++){ // Create an empty score matrix and an empty indel matrix
     vector<int> row;
-    vector<int> row2;
+    vector<int> row2; 				   //the indel matrix will serve to know if we have already started an indel, vertically or horizontally
     for(int j = 0; j<= p1.size(); j++){
       row.push_back(0);
       row2.push_back(0);
@@ -26,30 +26,39 @@ int cmpProteins(vector<int> p1, vector<int> p2, int indel, int openIndel, map<in
     vecScore.push_back(row);
     vecIndel.push_back(row2);
   }
+  
+  //beginning of the algorithm
   for (int i = 1; i<= p2.size(); i++){
-    vector<int> row;
-    for(int j = 1; j< p1.size(); j++){
+    for(int j = 1; j< p1.size(); j++){ //for each column and each line
 	  int possUP = 0; int possLEFT = 0;
-	  if(vecIndel[i][j-1] == 1){
+	  
+	  //calculate the score if we insert an indel in the protein p2
+	  if(vecIndel[i][j-1] == 1){ //If If the indel matrix conteins a 1 just above, an indel was already opened 
 		possUP = vecScore[i][j-1] + indel;
 	  }else{
 		possUP = vecScore[i][j-1] + indel + openIndel;
 	  }
-	  if(vecIndel[i-1][j] == 2){
+	  //calculate the score if we insert an indel in the protein p1, our protein
+	  if(vecIndel[i-1][j] == 2){ //If If the indel matrix conteins a 2 just to the left, an indel was already opened
 		possLEFT = vecScore[i-1][j] + indel;
 	  }else{
 		possLEFT = vecScore[i-1][j] + indel + openIndel;
 	  }
+	  
+	  //calculate the maximum score from the 4 possibilities (0, vertical indel, horizontal indel and match)
       int possUL = vecScore[i-1][j-1] + (*maptrix)[p2[i-1]][p1[j-1]];
       int maxUL = max(possUP, possLEFT);
       int maxZUL = max(0, possUL);
-      vecScore[i][j] = max(maxUL, maxZUL); //calculate the maximum score from the possibilities
+      vecScore[i][j] = max(maxUL, maxZUL); 
+      
+      //if we inserted an indel, write in the indel matrix the right indel
       if (max(maxUL, maxZUL) == possUP && max(maxUL, maxZUL) != 0){
 		  vecIndel[i][j] = 1;
 	  }
 	  else if(max(maxUL, maxZUL) == possLEFT && max(maxUL, maxZUL) != 0){
 		  vecIndel[i][j] = 2;
 	  }
+	  
       if((i==p2.size() || j == p1.size()) && (vecScore[i][j] > score)){ //register the score
         score = vecScore[i][j];
       }
